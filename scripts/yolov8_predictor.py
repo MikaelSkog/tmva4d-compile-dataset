@@ -2,10 +2,18 @@ from functools import reduce
 
 import cv2
 import numpy as np
+import torch
 from ultralytics import YOLO
 
 class MaskPredictor:
     def __init__(self, model_path):
+        # Check if CUDA is available.
+        if torch.cuda.is_available():
+            print("CUDA is available.")
+            print("CUDA version:", torch.version.cuda)
+        else:
+            print("CUDA is not available.")
+
         # Load the model.
         self.model = YOLO(model_path) 
 
