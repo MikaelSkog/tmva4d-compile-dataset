@@ -4,12 +4,17 @@ import json
 import os
 import shutil
 
+import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 
-import scripts.metadata as metadata
-from scripts.view_instance_generator import ViewInstancesGenerator
 from scripts.yolov8_predictor import MaskPredictor
+import scripts.metadata as metadata
+from scripts.project_points_ea import project_points_to_ea_view
+from scripts.view_instance_generator import ViewInstancesGenerator
+
+NUM_SAMPLES_PER_SEQ = 3 # Number of samples selected per sequence.
 
 def get_args():
     # Handle command line arguments.
@@ -34,7 +39,7 @@ def get_args():
         exit(1)
 
     # Check that the specified file is a model (extension .pt).
-    if (os.path.splitext(args.yolov8_model)[1] != '.pt'):
+    if os.path.splitext(args.yolov8_model)[1] != '.pt':
         print(f"'{args.yolov8_model}' is not a YOLOv8 model (extension .pt)")
         exit(1)
 
@@ -71,6 +76,7 @@ if __name__ == "__main__":
     # Get the sequences in the point cloud input directory.
     sequences = [d for d in os.listdir(pcd_dir) if os.path.isdir(os.path.join(pcd_dir, d))]
 
+    print("Gathering statistics on the input point cloud data files.")
     # Get the minimums and maximums for the range, power, and Doppler values as a dictionary, then save it.
     pcd_stats = metadata.get_pcd_stats(pcd_dir)
     with open(os.path.join(dataset_dir, 'pcd_stats.json'), 'w') as f:
@@ -78,6 +84,10 @@ if __name__ == "__main__":
 
     # Initialize the YOLOv8 predictor, using the model at the specified path.
     mask_predictor = MaskPredictor(yolov8_model_path)
+
+    # Create a new directory in the dataset directory, with visualizations for a few sample frames.
+    dataset_samples_dir = os.path.join(dataset_dir, 'samples')
+    os.makedirs(dataset_samples_dir)
 
     # PREPARE THE DATASET:
     # For each sequence:
@@ -97,12 +107,12 @@ if __name__ == "__main__":
         img_file_paths = [file for ext in ('jpg', 'jpeg', 'png') for file in glob.glob(os.path.join(img_seq_dir, f'*.{ext}'))]
 
         # If no images were found for the sequence, skip this sequence:
-        if len(img_file_paths)==0:
+        if len(img_file_paths) == 0:
             print(f"Warning: No images found for sequence '{seq}'; skipping it.")
             continue
 
         # If no point cloud data files were found for the sequence, skip this sequence:
-        if len(pcd_file_paths)==0:
+        if len(pcd_file_paths) == 0:
             print(f"Warning: No point cloud data files found for sequence '{seq}'; skipping it.")
             continue
 
@@ -124,11 +134,17 @@ if __name__ == "__main__":
         os.makedirs(dataset_seq_ra_dir)
         os.makedirs(dataset_seq_da_dir)
 
+        # Create a directory corresponding to this sequence in the samples directory. All samples for this sequence
+        # will be placed here.
+        dataset_samples_seq_dir = os.path.join(dataset_samples_dir, seq)
+        os.makedirs(dataset_samples_seq_dir)
+
         # Initialize the frame counter for this sequence.
         frame = 0
         
         # For each point cloud in the sequence directory:
         for pcd_file_path in pcd_file_paths:
+            # Turn the frame number into a 6 digit string with leading zeros. This will be the frame's name.
             frame_name = str(frame).zfill(6)
 
             # Get the path of the image temporally closest to this point cloud.
@@ -136,13 +152,13 @@ if __name__ == "__main__":
                 img_file_paths, key=lambda img_file_path: abs(get_timestamp(pcd_file_path) - get_timestamp(img_file_path)))
             
             # Get and save the camera image. Also get its resolution.
-            img_save_filename = frame_name + os.path.splitext(closest_img_to_pcd_path)[1]
+            img_save_filename = frame_name + os.path.splitext(closest_img_to_pcd_path)[1] # File extension.
             shutil.copy(closest_img_to_pcd_path, os.path.join(dataset_seq_img_dir, img_save_filename))
             img = Image.open(closest_img_to_pcd_path)
             img_resolution = img.size
 
-            # Get (predict) and save the YOLOv8 prediction mask(s) for the image.
-            masks = mask_predictor.predict(img)
+            # Get (predict) and save the YOLOv8 prediction mask(s) for the image. Also get a visualization of the predictions.
+            predictions_img, masks = mask_predictor.predict(img)
             os.makedirs(os.path.join(dataset_seq_annotations_dir, frame_name))
             np.save(os.path.join(dataset_seq_annotations_dir, frame_name, 'elevation_azimuth'), masks)
 
@@ -158,6 +174,65 @@ if __name__ == "__main__":
             np.save(os.path.join(dataset_seq_ed_dir, frame_name), ed_instance) # Elevation-Doppler.
             np.save(os.path.join(dataset_seq_ra_dir, frame_name), ra_instance) # Range-azimuth.
             np.save(os.path.join(dataset_seq_da_dir, frame_name), da_instance) # Doppler-azimuth.
+
+            # Potentially get visualizations for this frame.
+            viz_part_int = round(len(pcd_file_paths) / (NUM_SAMPLES_PER_SEQ + 1)) # Visualization partitioning interval.
+            for factor in range(1, NUM_SAMPLES_PER_SEQ + 1):
+                # If this is one of the frames chosen as samples:
+                if viz_part_int * factor == frame + 1:
+                    # Create a directory corresponding to this frame in the current sequence.
+                    dataset_samples_seq_frame_dir = os.path.join(dataset_samples_seq_dir, frame_name)
+                    os.makedirs(dataset_samples_seq_frame_dir)
+
+                    # Save an image showing the segmentation masks and bounding boxes overlayed on top of the input image.
+                    cv2.imwrite(os.path.join(dataset_samples_seq_frame_dir, 'seg_pred.png'), predictions_img)
+
+                    # For each view, save a visualization of the frame's instance of the view.
+                    # Elevation-azimuth.
+                    plt.imshow(ea_instance, cmap='viridis', aspect='equal')
+                    plt.ylabel('Elevation')
+                    plt.xlabel('Azimuth')
+                    plt.xticks([])
+                    plt.yticks([])
+                    plt.savefig(os.path.join(dataset_samples_seq_frame_dir, 'ea.png'), bbox_inches='tight', pad_inches=0.1, dpi=600)
+                    plt.close()
+                    # Elevation-range.
+                    plt.imshow(er_instance, cmap='viridis', aspect='equal')
+                    plt.ylabel('Elevation')
+                    plt.xlabel('Range')
+                    plt.xticks([])
+                    plt.yticks([])
+                    plt.savefig(os.path.join(dataset_samples_seq_frame_dir, 'er.png'), bbox_inches='tight', pad_inches=0.1, dpi=600)
+                    plt.close()
+                    # Elevation-Doppler.
+                    plt.imshow(ed_instance, cmap='viridis', aspect='equal')
+                    plt.ylabel('Elevation')
+                    plt.xlabel('Doppler')
+                    plt.xticks([])
+                    plt.yticks([])
+                    plt.savefig(os.path.join(dataset_samples_seq_frame_dir, 'ed.png'), bbox_inches='tight', pad_inches=0.1, dpi=600)
+                    plt.close()
+                    # Range-azimuth.
+                    plt.imshow(np.flipud(ra_instance), cmap='viridis', aspect='equal')
+                    plt.ylabel('Range')
+                    plt.xlabel('Azimuth')
+                    plt.xticks([])
+                    plt.yticks([])
+                    plt.savefig(os.path.join(dataset_samples_seq_frame_dir, 'ra_flipud.png'), bbox_inches='tight', pad_inches=0.1, dpi=600)
+                    plt.close()
+                    # Doppler-azimuth.
+                    plt.imshow(np.flipud(ra_instance), cmap='viridis', aspect='equal')
+                    plt.ylabel('Doppler')
+                    plt.xlabel('Azimuth')
+                    plt.xticks([])
+                    plt.yticks([])
+                    plt.savefig(os.path.join(dataset_samples_seq_frame_dir, 'da_flipud.png'), bbox_inches='tight', pad_inches=0.1, dpi=600)
+                    plt.close()
+
+                    # Project and save a visualization of the points projected to the elevation-azimuth view, and the grid that defines the
+                    # boundaries of the cells.
+                    ea_projection_plot = project_points_to_ea_view(pcd_file_path, img_resolution)
+                    ea_projection_plot.savefig(os.path.join(dataset_samples_seq_frame_dir, 'ea_projection.png'), bbox_inches='tight', pad_inches=0.1, dpi=600)
 
             # Increment the frame counter for this sequence.
             frame += 1

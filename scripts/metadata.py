@@ -8,7 +8,7 @@ import open3d as o3d
 
 TRAIN_SET_SPLIT = 0.5  # Ratio of the training set split.
 VAL_SET_SPLIT   = 0.25 # Ratio of the validation set split.
-# The rest is assigned to the validation set.
+# The rest is assigned to the test set.
 
 # Get the minimums and maximums for the range, power, and Doppler values as a dictionary.
 # 'pcd_dir' specifies the path to the directory containing subdirectories each representing
@@ -77,7 +77,7 @@ def get_pcd_stats(pcd_dir):
 # across the whole dataset (all instances) as a dictionary.
 def get_stats_for_view(dataset_dir, view_subdir):
     # Get the sequences in the dataset directory.
-    sequences = [d for d in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, d))]
+    sequences = [d for d in os.listdir(dataset_dir) if (os.path.isdir(os.path.join(dataset_dir, d)) and d != 'samples')]
 
     # NumPy array that will end up being all instances of the view concatenated.
     all_instances_of_view = None
@@ -111,7 +111,7 @@ def get_stats_for_view(dataset_dir, view_subdir):
 # masks, as a dictionary.
 def get_weights_for_ea_view(dataset_dir):
     # Get the sequences in the dataset directory.
-    sequences = [d for d in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, d))]
+    sequences = [d for d in os.listdir(dataset_dir) if (os.path.isdir(os.path.join(dataset_dir, d)) and d != 'samples')]
 
     # NumPy array that will end up being all masks of the 'person' class for elevation-azimuth view concatenated.
     all_ea_masks_person = None
@@ -149,7 +149,7 @@ def get_dataset_sequence_frames(dataset_dir):
     dataset_sequence_frames = {}
 
     # Get the sequences in the dataset directory.
-    sequences = [d for d in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, d))]
+    sequences = [d for d in os.listdir(dataset_dir) if (os.path.isdir(os.path.join(dataset_dir, d)) and d != 'samples')]
 
     # For each sequence:
     for seq in sequences:
@@ -171,7 +171,7 @@ def get_dataset_sequence_splits(dataset_dir):
     dataset_sequence_splits = {}
 
     # Get the sequences in the dataset directory.
-    sequences = [d for d in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, d))]
+    sequences = [d for d in os.listdir(dataset_dir) if (os.path.isdir(os.path.join(dataset_dir, d)) and d != 'samples')]
 
     # Set all sequences as keys of the dictionary.
     dataset_sequence_splits = {seq: None for seq in sequences}

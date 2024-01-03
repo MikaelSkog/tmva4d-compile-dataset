@@ -37,7 +37,7 @@ class ViewInstancesGenerator():
                     flag = True
                     continue
                 if flag:
-                    # Get the power and doppler values for the points of this point cloud.
+                    # Get the power and Doppler values for the points of this point cloud.
                     values = line.split()
                     power = float(values[3])  # Assuming the power value of the point is at in field of index 3.
                     power_values.append(power)
