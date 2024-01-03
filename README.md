@@ -40,6 +40,6 @@ Run the script using
 ```
 python compile_dataset.py --input_dir </path/to/input/dir/> --output_dir <path/to/output/dir/> --yolov8_model </path/to/YOLOv8/model.pt>
 ```
-Running the program should result in a directory 'Dataset4d' being created and populated, which will be found at <path/to/output/dir/>.
+Running the program should result in a directory 'Dataset4d' being created and populated, which will be found in the specified output directory.
 
 Check the 'samples' directory in 'Dataset4d' to qualitatively assess the compiled dataset.
