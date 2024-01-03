@@ -1,5 +1,5 @@
 # ros-rad4d-extract
-Python 3 scripts for compiling a dataset to be used with TMVA4D.
+Python 3 scripts for compiling a dataset to be used with TMVA4D. As input, the image and PCD files extracted using tmva4d-ros-extract are used.
 
 ## Getting Started
 ### Prerequisites
