@@ -31,7 +31,7 @@ and PCD files were extracted. Note that, for a given sequence, the names of its 
         ├── sequence2/
         └── sequence3/
 ```
-Each sequence directory should then be populated with the images and PCD files extracted from that sequence, for the 'img' and 'pcd' respectively.
+Each sequence directory should then be populated with the images and PCD files extracted from that sequence, for the 'img' and 'pcd' directories respectively.
 
 A YOLOv8 model is also necessary.
 
