@@ -3,7 +3,7 @@ Python 3 scripts for compiling a dataset to be used with TMVA4D. As input, the i
 
 ## Getting Started
 ### Prerequisites
-In order to run the ROS nodes, make sure that the following are installed in your Python environment: NumPy, OpenCV (CV2), Open3D. To install the packages using PIP:
+In order to run the ROS nodes, make sure that the following are installed in your Python environment: Matplotlib, NumPy, OpenCV (CV2), Open3D. To install the packages using PIP:
 ```
 pip3 install matplotlib numpy opencv-python open3d
 ```
@@ -38,7 +38,7 @@ A YOLOv8 model is also necessary.
 ### Image Extractor
 Run the script using
 ```
-python compile_dataset.py --input_dir </path/to/input/dir/> --output_dir <path/to/output/dir/> --yolov8_model </path/to/YOLOv8/model.pt>
+python3 compile_dataset.py --input_dir </path/to/input/dir/> --output_dir <path/to/output/dir/> --yolov8_model </path/to/YOLOv8/model.pt>
 ```
 Running the program should result in a directory 'Dataset4d' being created and populated, which will be found in the specified output directory.
 
