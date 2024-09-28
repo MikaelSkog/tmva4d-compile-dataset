@@ -51,7 +51,6 @@ class MaskPredictor:
         mask_both_classes_float64 = mask_both_classes.astype(np.float64)
 
         # Get a visualization segmentation masks, overlayed on top of the image.
-
         image_with_masks = results[0].plot()
 
         return image_with_masks, mask_both_classes_float64

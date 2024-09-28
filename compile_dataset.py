@@ -19,8 +19,8 @@ NUM_SAMPLES_PER_SEQ = 3 # Number of samples selected per sequence.
 def get_args():
     # Handle command line arguments.
     parser = argparse.ArgumentParser(description="Create a 4D radar dataset from input point cloud data files and image files.")
-    parser.add_argument('--input_dir', type=str, required=True, help="Path to the input directory.")
-    parser.add_argument('--output_dir', type=str, required=True, help="Path to the output directory.")
+    parser.add_argument('--input_dir',    type=str, required=True, help="Path to the input directory.")
+    parser.add_argument('--output_dir',   type=str, required=True, help="Path to the output directory.")
     parser.add_argument('--yolov8_model', type=str, required=True, help="Path to the YOLOv8 model")
     args = parser.parse_args()
 
@@ -52,10 +52,9 @@ def get_args():
 
 # Get the timestamp based on the filename of a specified file.
 def get_timestamp(file_path):
-    filename = os.path.basename(file_path)
-    timestamp_str = filename[0].replace('_', '.')
-    return int(timestamp_str)
-
+    filename = os.path.splitext(os.path.basename(file_path))[0]
+    timestamp_str = filename.replace('_', '.')
+    return float(timestamp_str)
 
 # COMPILE THE 4D RADAR DATASET.
 if __name__ == "__main__":
@@ -221,7 +220,7 @@ if __name__ == "__main__":
                     plt.savefig(os.path.join(dataset_samples_seq_frame_dir, 'ra_flipud.png'), bbox_inches='tight', pad_inches=0.1, dpi=600)
                     plt.close()
                     # Doppler-azimuth.
-                    plt.imshow(np.flipud(ra_instance), cmap='viridis', aspect='equal')
+                    plt.imshow(np.flipud(da_instance), cmap='viridis', aspect='equal')
                     plt.ylabel('Doppler')
                     plt.xlabel('Azimuth')
                     plt.xticks([])
@@ -273,4 +272,4 @@ if __name__ == "__main__":
     with open(os.path.join(dataset_dir, 'data_seq_ref.json'), 'w') as f:
         json.dump(frames_in_each_sequence, f, indent=2)
 
-    print("Dataset compilation completed!")
+    print("Dataset creation completed!")

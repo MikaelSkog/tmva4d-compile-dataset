@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 
 # Number of bins in the elevation and azimuth dimension (before resizing).
 # NOTE: These should be set such that the "grid" representing the bin divisions in the
-# elevation-azimuth view fits the grid-like distribution of points projecte
+# elevation-azimuth view fits the grid-like distribution of the projected points.
 ELEVATION_SIZE = 28
-AZIMUTH_SIZE = 44
+AZIMUTH_SIZE   = 44
 
-def project_points_to_ea_view(point_cloud_file_path, image_resolution):
+def project_points_to_ea_view(point_cloud_file_path, img_resolution):
         # Read the point cloud data file and get its points.
         point_cloud = o3d.io.read_point_cloud(point_cloud_file_path)
         points = np.asarray(point_cloud.points)
@@ -51,22 +51,27 @@ def project_points_to_ea_view(point_cloud_file_path, image_resolution):
         plt.xticks([])
         plt.yticks([])
 
-        # Set the limits to match the image resolution.
-        plt.xlim(0, image_resolution[0])
-        plt.ylim(image_resolution[1], 0)
+        width  = 640
+        height = 512
+
+        # Set the limits to match the img resolution.
+        plt.xlim(0, width)
+        plt.ylim(height, 0)
 
         # Calculate the half bin width
-        half_bin_width = (image_resolution[0] / AZIMUTH_SIZE) / 2
+        half_bin_width = (width / AZIMUTH_SIZE) / 2
 
         # Add vertical lines to divide the plot into AZIMUTH_SIZE bins.
-        vertical_bin_edges = np.linspace(-half_bin_width, image_resolution[0] + half_bin_width, AZIMUTH_SIZE+1)
-        plt.vlines(vertical_bin_edges, 0, image_resolution[1], colors='red', linewidth=0.25)
+        vertical_bin_edges = np.linspace(-half_bin_width, width+half_bin_width, AZIMUTH_SIZE+1)
+        plt.vlines(vertical_bin_edges, 0, height, colors='red', linewidth=0.25)
 
         # Calculate the half bin height.
-        half_bin_height = (image_resolution[1] / ELEVATION_SIZE) / 2
+        half_bin_height = (height / ELEVATION_SIZE) / 2
 
         # Add horizontal lines to divide the plot into ELEVATION_SIZE bins.
-        horizontal_bin_edges = np.linspace(-half_bin_height, image_resolution[1] + half_bin_height, ELEVATION_SIZE+1)
-        plt.hlines(horizontal_bin_edges, 0, image_resolution[0], colors='red', linewidth=0.25)
+        horizontal_bin_edges = np.linspace(-half_bin_height, height+half_bin_height, ELEVATION_SIZE+1)
+        plt.hlines(horizontal_bin_edges, 0, width, colors='red', linewidth=0.25)
+
+        plt.close()
 
         return fig
