@@ -57,16 +57,12 @@ class ViewInstancesGenerator():
         self.ra_matrix = np.zeros([RANGE_SIZE, AZIMUTH_SIZE])
         self.da_matrix = np.zeros([DOPPLER_SIZE, AZIMUTH_SIZE])
 
-        # FOR MAX
         # Count the number of points falling within each cell.
         self.ea_matrix_count = np.zeros([ELEVATION_SIZE, AZIMUTH_SIZE])
         self.er_matrix_count = np.zeros([ELEVATION_SIZE, RANGE_SIZE])
         self.ed_matrix_count = np.zeros([ELEVATION_SIZE, DOPPLER_SIZE])
         self.ra_matrix_count = np.zeros([RANGE_SIZE, AZIMUTH_SIZE])
         self.da_matrix_count = np.zeros([DOPPLER_SIZE, AZIMUTH_SIZE])
-
-        # Keep track of whether valid point(s) were found for the view.
-        view_empty = False
         
         # Update (potentially) the matrices based on the point specified by the point index.
         def update_matrices(point_idx):
@@ -77,7 +73,7 @@ class ViewInstancesGenerator():
                                       (RANGE_SIZE-1) / (pcd_stats['range']['max'] - pcd_stats['range']['min']))
             doppler_bin_idx = round((doppler_values[point_idx] - pcd_stats['doppler']['min']) * 
                                       (DOPPLER_SIZE-1) / (pcd_stats['doppler']['max'] - pcd_stats['doppler']['min']))
-            power = power_values[point_idx] # COMMENT FOR RCS - pcd_stats['power']['min']
+            power = power_values[point_idx] - pcd_stats['power']['min']
 
             # If the point does not fall within the camera when projected to the camera view, skip it.
             if (azimuth_bin_idx < 0 or azimuth_bin_idx > AZIMUTH_SIZE-1 or
@@ -99,19 +95,6 @@ class ViewInstancesGenerator():
             # Do the same if the Doppler value is too small.
             if doppler_bin_idx < 0:
                 doppler_bin_idx = 0
-
-            """
-            # FOR RADAR CROSS SECTION
-            # Convert power value in decibels to a linear value
-            linear_power = pow(10, power/10)
-            # Get the radar cross section multiplied by unknown constants
-            range_val = range_values[point_idx]
-            sigma_k = linear_power * pow(4 * math.pi * pow(range_val, 2), 2)
-            # Use sigma_k (radar cross section) in place of power
-            power = sigma_k
-            # FOR LOG10 RCS, ALSO INCLUDE:
-            power = math.log10(power)
-            """
             
             # FOR MAX
             # Whatever cell this point corresponds to in each view, update that cell
@@ -127,70 +110,9 @@ class ViewInstancesGenerator():
             if power > self.da_matrix[doppler_bin_idx][azimuth_bin_idx]:
                 self.da_matrix[doppler_bin_idx][azimuth_bin_idx] = power
 
-            """
-            # FOR MEAN
-            # Whatever cell this point corresponds to in each view, update that cell
-            # if by adding the point's power to the cell value.
-            self.ea_matrix[elevation_bin_idx][azimuth_bin_idx] += power
-            self.er_matrix[elevation_bin_idx][range_bin_idx] += power
-            self.ed_matrix[elevation_bin_idx][doppler_bin_idx] += power
-            self.ra_matrix[range_bin_idx][azimuth_bin_idx] += power
-            self.da_matrix[doppler_bin_idx][azimuth_bin_idx] += power
-            # Increment the counter for the number of points falling within the cell
-            # by 1.
-            self.ea_matrix_count[elevation_bin_idx][azimuth_bin_idx] += 1
-            self.er_matrix_count[elevation_bin_idx][range_bin_idx] += 1
-            self.ed_matrix_count[elevation_bin_idx][doppler_bin_idx] += 1
-            self.ra_matrix_count[range_bin_idx][azimuth_bin_idx] += 1
-            self.da_matrix_count[doppler_bin_idx][azimuth_bin_idx] += 1
-            """
-
-            """
-            # FOR SUM
-            # Whatever cell this point corresponds to in each view, update that cell
-            # if by adding the point's power to the cell value.
-            self.ea_matrix[elevation_bin_idx][azimuth_bin_idx] += power
-            self.er_matrix[elevation_bin_idx][range_bin_idx] += power
-            self.ed_matrix[elevation_bin_idx][doppler_bin_idx] += power
-            self.ra_matrix[range_bin_idx][azimuth_bin_idx] += power
-            self.da_matrix[doppler_bin_idx][azimuth_bin_idx] += power
-            """
-
         # For each point, update (potentially) the matrices.
         for i in range(len(azimuth_values)):
             update_matrices(i)
-
-        """
-        # FOR MEAN
-        # If any valid point was found for the view, divide each element by the
-        # number of points.
-        # Avoid division by zero by changing all zeros in the count matricies to 1.
-        if not view_empty:
-            self.ea_matrix /= np.maximum(self.ea_matrix_count, 1)
-            self.er_matrix /= np.maximum(self.er_matrix_count, 1)
-            self.ed_matrix /= np.maximum(self.ed_matrix_count, 1)
-            self.ra_matrix /= np.maximum(self.ra_matrix_count, 1)
-            self.da_matrix /= np.maximum(self.da_matrix_count, 1)
-        """
-
-        """
-        # FOR RADAR CROSS SECTION
-        # Get the RCS for the lowest power value and lowest range.
-        # Convert power value in decibels to a linear value.
-        linear_power = pow(10, power/10)
-        # Get the radar cross section multiplied by unknown constants.
-        sigma_k = linear_power * pow(4 * math.pi * pow(pcd_stats['range']['min'], 2), 2)
-        # Use sigma_k (radar cross section) in place of power.
-        power = sigma_k
-        # FOR LOG10 RCS, ALSO INCLUDE:
-        power = math.log10(power)
-        # Shift the interval of non-zero elements in the heatmap matrices down to 0.
-        self.ea_matrix[self.ea_matrix != 0] -= power
-        self.er_matrix[self.er_matrix != 0] -= power
-        self.ed_matrix[self.ed_matrix != 0] -= power
-        self.ra_matrix[self.ra_matrix != 0] -= power
-        self.da_matrix[self.da_matrix != 0] -= power
-        """
 
         # Resize the instances.
         self.ea_matrix = cv2.resize(self.ea_matrix, dsize=(128, 128), interpolation=cv2.INTER_LINEAR).astype('float64')
